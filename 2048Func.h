@@ -1,15 +1,20 @@
 //
-// Created by Tan on 2018/1/7.
+// Created by Tan on 2018/7/7.
 //
+
+#ifndef MT2048_2048FUNC_H
+#define MT2048_2048FUNC_H
+
+// CodeNemo (GitHub)
+// C
+// Terminal2048
+// CLion
+// V1.1
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <termios.h>
-#include <unistd.h>
 
-#ifndef DEV_2048_2048_FUNC_H
-#define DEV_2048_2048_FUNC_H
 
 _Bool RandonCreate(unsigned short *num);
 void WelcomePage();
@@ -21,27 +26,82 @@ _Bool down(unsigned short *num,unsigned int *score);
 void PrintNum(unsigned short *num);
 void Save(unsigned short *num,unsigned int *score);
 _Bool ReadSave(unsigned short *num , unsigned int *score);
+unsigned int Highest();
+char *RandomStr(int8_t leng);
+
+
+char *RandomStr(int8_t leng)
+{
+    char rnd;
+    srand((unsigned)time(NULL));
+    char *str = (char *)malloc((leng+1) * sizeof(char));
+    for(int i=0;i<leng;i++)
+    {
+        *(str+i) = rand()%66+58;
+    }
+    return str;
+}
+
+void Tutor()
+{
+    unsigned short *num = malloc(16*sizeof(unsigned short));
+    for(int8_t i=0;i<16;i++)
+        *(num+i)=0;
+    *num = *(num+4) = 2;
+    puts("In this game, there's a 4x4 square filled with 16 numbers.");
+    //puts("")
+}
+
+
+unsigned int Highest()
+{
+    char c , *data=malloc(7*sizeof(char));
+    u_int8_t i1;
+    unsigned int score;
+    FILE *save;
+
+    if((save=fopen("highest","r"))==NULL)
+        return 0;
+    if((c=getc(save))==EOF)
+        return 0;
+    else
+        while(48<=c && c<=57)
+        {
+            *(data+i1)=c;
+            c=getc(save);
+            i1++;
+        }
+    score = atoi(data);
+    if(score%2 != 0)
+    {
+        fopen("highest","w");
+        return 0;
+    }
+    return score;
+}
 
 void Save(unsigned short *num,unsigned int *score)
 {
-    char c;
+    srand(time(NULL));
+    int8_t RndNum=0;
     char *data = malloc(5*sizeof(char));
-    _Bool NewRecord=0;
-    unsigned int record;
+    RndNum = rand()%8+1;
     FILE *save;
-    save= fopen("2048save","w");
+    save = fopen("2048save","w");
+    sprintf(data , "%d" , RndNum+1);
+    fputs(data,save);
+    fputs(RandomStr(RndNum),save);
+
     for(int8_t i=0;i<16;i++)
     {
-        fprintf(save,"#");
-        sprintf(data,"%d",*(num+i));
+        fputs(RandomStr(rand()%RndNum+1),save);
+        sprintf(data,"%d",*(num+i)+RndNum);
         fputs(data,save);
     }
-
-    //save=fopen("2048save","a");
-    fprintf(save,"#");
-    sprintf(data,"%d",*score);
+    fputs(RandomStr(rand()%RndNum+1),save);
+    sprintf(data,"%d",*score+RndNum);
     fputs(data,save);
-    fprintf(save,"#");
+    fputs(RandomStr(rand()%RndNum+1),save);
 
     free(data);
     fclose(save);
@@ -50,93 +110,98 @@ void Save(unsigned short *num,unsigned int *score)
 
 _Bool ReadSave(unsigned short *num , unsigned int *score)
 {
-    //puts("2!");
+    for(int8_t i=0;i<16;i++)
+        *(num+i)=0;
     char *data = (char*)malloc(5*sizeof(char));
     char c='#';
     FILE *save;
-    int8_t i2=0;
+    int8_t i2 , EncNum=0;
     unsigned int check;
-    //puts("Start check");
+
     if((save=fopen("2048save","r"))==NULL)
         return 1;
 
-    //puts("3!");
-    for(int8_t i1=0;i1<16;i1++)
+    c = getc(save)-1;
+    if('1'<=c && c<='8')
+        EncNum = atoi(&c);
+    else
+        return 1;
+    fseek(save , EncNum , SEEK_CUR);
+
+
+    // Collects 16 nums
+    for(int8_t i1=0 ; i1<16 ; i1++)
     {
-        //puts("4!");
-        //printf("No.%d",i1);
+        i2 = 0;
+        for(short i=0; i<5; i++)
+            *(data+i)=' ';
         if((c=getc(save))==EOF)
             return 1;
 
-        i2=0;
-        while(c<=47 || c>=58)
+        while(c<'0' || '9'<c)
             if((c=getc(save))==EOF)
                 return 1;
-
-
-        while(47<c && c<58)
+        while('0'<=c && c<='9')
         {
-
-            //puts("Enter");
-            *(data+i2)=c;
+            putchar(c);
+            *(data+i2) = c;
             i2++;
             if((c=getc(save))==EOF)
                 return 1;
-        }
 
-        *(num+i1) = atoi(data);
-        check=*(num+i1);
-        while(check!=1 && check!=0)
+        }
+        *(num+i1) = atoi(data) - EncNum;
+        printf("%d\n",*(num+i1));
+
+        check = *(num+i1);
+        while(check!=1 && check)
         {
 
-            if ((check % 2) != 0)
+            if (check % 2)
+            {
+                //printf("%d %d ", i1 ,*(num+i1));
+                puts("Nums error");
                 return 1;
+            }
             check /= 2;
         }
-        //puts("1!");
     }
-    //puts("4!");
 
-    //puts("5!");
-    while(c<=47 || c>=58)
+
+
+    while(c<'0' || c>'9')
         if((c=getc(save))==EOF)
             return 1;
     i2=0;
-    while(47<c && c<58)
+    for(short i=0; i<5; i++)
+        *(data+i)=' ';
+
+    while('0'<=c && c<='9')
     {
-        //puts("Enter");
         *(data+i2)=c;
         i2++;
         if((c=getc(save))==EOF)
             return 1;
-
     }
+    puts(data);
     if(*data==' ')
         return 1;
-    *score=atoi(data);
-    check=*score;
+    //printf("%d\n",atoi(data));
+    *score = atoi(data);
+    *score -= EncNum;
+    //printf("%d", *score);
+    check = *score;
     if(check!=0)
         if((check%2) !=0)
+        {
+            puts("Scores error!");
             return 1;
+        }
 
     return 0;
 }
 
-int getche()
-{
 
-    struct termios t;
-    int c;
-
-    tcgetattr(0,&t);
-    t.c_lflag&=~ICANON;
-    tcsetattr(0,TCSANOW,&t);
-    fflush(stdout);
-    c=getchar();
-    t.c_lflag|=ICANON;
-    tcsetattr(0,TCSANOW,&t);
-    return c;
-}
 
 _Bool CheckDie(unsigned short *num)
 {
@@ -165,6 +230,7 @@ _Bool CheckDie(unsigned short *num)
 
 _Bool RandonCreate(unsigned short *num)
 {
+
     srand((unsigned)time(NULL));
     int8_t amt=0,RndNum=0;
     unsigned short *emt[16];
@@ -176,8 +242,7 @@ _Bool RandonCreate(unsigned short *num)
             i1++;
             amt++;
         }
-    //if(amt==0)
-    //    return 0;
+
     RndNum = rand()%4+1;
     if(RndNum==1 || RndNum==3)
         RndNum=2;
@@ -213,7 +278,7 @@ _Bool left(unsigned short *num,unsigned int *score)
             }
         }
     }
-    
+
     for (int8_t i2 = 0; i2 < 4; i2++) {
         for (int8_t i3 = 0; i3 < 3; i3++) {
             if ((*(num + 4 * i2 + i3) == *(num + 4 * i2 + i3 + 1)) && (*(num + 4 * i2 + i3 + 1) != 0)) {
@@ -225,7 +290,7 @@ _Bool left(unsigned short *num,unsigned int *score)
             }
         }
     }
-    
+
     for(int8_t i1=0;i1<3;i1++)
     {
         for (int8_t i2 = 0; i2 < 4; i2++)
@@ -240,7 +305,7 @@ _Bool left(unsigned short *num,unsigned int *score)
             }
         }
     }
-    
+
     return moved;
 }
 
@@ -262,7 +327,7 @@ _Bool right(unsigned short *num,unsigned int *score)
             }
         }
     }
-    
+
     for (int8_t i2 = 3; i2 > -1; i2--)
     {
         for (int8_t i3 = 3; i3 > 0; i3--)
@@ -276,7 +341,7 @@ _Bool right(unsigned short *num,unsigned int *score)
             }
         }
     }
-    
+
     for(int8_t i1=3;i1>0;i1--)
     {
         for (int8_t i2=3; i2>-1; i2--)
@@ -291,7 +356,7 @@ _Bool right(unsigned short *num,unsigned int *score)
             }
         }
     }
-    
+
     return moved;
 }
 
@@ -313,7 +378,7 @@ _Bool up(unsigned short *num,unsigned int *score)
             }
         }
     }
-    
+
     for(int8_t i2=0;i2<4;i2++)
         for(int8_t i3=0;i3<3;i3++)
             if((*(num+i2+4*i3)==*(num+i2+4*i3+4)) && (*(num+i2+4*i3)!=0))
@@ -323,7 +388,7 @@ _Bool up(unsigned short *num,unsigned int *score)
                 *score += *(num+i2+4*i3);
                 moved=1;
             }
-    
+
     for(int8_t i1=0;i1<3;i1++)
     {
         for(int8_t i2=0;i2<4;i2++)
@@ -338,7 +403,7 @@ _Bool up(unsigned short *num,unsigned int *score)
             }
         }
     }
-    
+
     return moved;
 }
 
@@ -363,7 +428,7 @@ _Bool down(unsigned short *num,unsigned int *score)
                 *score+=*(num+4*i3+i2);
                 moved=1;
             }
-    
+
     for(int8_t i1=0;i1<3;i1++)
         for(int8_t i2=3;i2>-1;i2--)
             for(int8_t i3=3;i3>0;i3--)
@@ -372,22 +437,11 @@ _Bool down(unsigned short *num,unsigned int *score)
                     *(num+4*i3+i2)=*(num+4*i3+i2-4);
                     *(num+4*i3+i2-4)=0;
                 }
-    
+
     return moved;
 }
 
-int getch(void)
-{
-    struct termios oldattr, newattr;
-    int ch;
-    tcgetattr( STDIN_FILENO, &oldattr );
-    newattr = oldattr;
-    newattr.c_lflag &= ~( 0u | ICANON | ECHO );
-    tcsetattr( STDIN_FILENO, TCSANOW, &newattr );
-    ch = getchar();
-    tcsetattr( STDIN_FILENO, TCSANOW, &oldattr );
-    return ch;
-}
+
 
 void PrintNum(unsigned short *num)
 {
@@ -399,23 +453,23 @@ void PrintNum(unsigned short *num)
             if(*(num+4*i1+i2)<10)
                 printf("     ");
             else
-                {
-                    if (*(num+4*i1+i2)< 100)
+            {
+                if (*(num+4*i1+i2)< 100)
                     printf("    ");
+                else
+                {
+                    if (*(num+4*i1+i2)< 1000)
+                        printf("   ");
                     else
                     {
-                        if (*(num+4*i1+i2)< 1000)
-                            printf("   ");
+                        if (*(num+4*i1+i2)< 10000)
+                            printf("  ");
                         else
-                        {
-                            if (*(num+4*i1+i2)< 10000)
-                                printf("  ");
-                            else
-                                if (*(num+4*i1+i2)< 100000)
-                                    printf(" ");
-                        }
+                        if (*(num+4*i1+i2)< 100000)
+                            printf(" ");
                     }
                 }
+            }
         }
         printf("\n");
     }
@@ -423,4 +477,7 @@ void PrintNum(unsigned short *num)
 
 }
 
-#endif //DEV_2048_2048_FUNC_H
+
+
+
+#endif //MT2048_2048FUNC_H
